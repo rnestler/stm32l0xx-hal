@@ -29,6 +29,9 @@ impl Delay {
         let freq = clocks.sys_clk().0;
         assert!(freq > 1_000_000_u32);
         let ticks_per_us = freq / 1_000_000_u32;
+        syst.set_reload(0x00FF_FFFF);
+        syst.clear_current();
+        syst.enable_counter();
         Delay { syst, ticks_per_us }
     }
     pub fn delay<T>(&mut self, delay: T)
@@ -65,6 +68,13 @@ impl DelayMs<u8> for Delay {
 impl DelayUs<u32> for Delay {
     fn delay_us(&mut self, us: u32) {
         const MAX_RVR: u32 = 0x00FF_FFFF;
+        //if us < 100 {
+        let start = SYST::get_current();
+
+        while SYST::get_current() - start < (self.ticks_per_us * us) {}
+        return;
+        //}
+        /*
         let mut total_rvr = self.ticks_per_us * us;
         while total_rvr > 0 {
             let current_rvr = if total_rvr <= MAX_RVR {
@@ -79,6 +89,7 @@ impl DelayUs<u32> for Delay {
             while !self.syst.has_wrapped() {}
             self.syst.disable_counter();
         }
+        */
     }
 }
 
